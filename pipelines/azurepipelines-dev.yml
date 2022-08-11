@@ -1,0 +1,58 @@
+name: Credentials Dev Pipeline
+
+pool:
+  vmImage: ubuntu-latest
+
+trigger: 
+  - develop
+
+pr:
+  - feature/*
+  - bugfix/*
+
+variables:
+  - name: 'GitVersion.SemVer'
+    value: ''
+  - group: banner
+  - group: azure
+  
+stages:
+- stage: Build
+  jobs:
+  - job: BuildAndPush
+    steps:
+    - task: gitversion/setup@0
+      inputs:
+        versionSpec: '5.x'
+
+    - task: gitversion/execute@0
+      inputs:
+        useConfigFile: true
+        configFilePath: 'GitVersion.yml'
+        
+    - bash: |
+       echo "##vso[task.setvariable variable=Semver;isOutput=true]$(GitVersion.SemVer)"
+      name: SetGitVersion
+
+    - task: Docker@2
+      inputs:
+        command: buildAndPush
+        containerRegistry: 'Azure Container Registry'
+        repository: cv-credentials
+        tags: '$(GitVersion.SemVer)'
+
+- stage: Deploy
+  jobs:
+  - job: 'DeployToAppService'
+    variables:
+      GitVersion.Semver: $[stageDependencies.Build.BuildAndPush.outputs['SetGitVersion.SemVer']]
+    steps:
+    - task: AzureRmWebAppDeployment@4
+      inputs:
+        ConnectionType: 'AzureRM'
+        azureSubscription: 'Lottus Registry'
+        appType: 'webAppContainer'
+        WebAppName: 'app-cv-credentials-dev'
+        DockerNamespace: 'lottus.azurecr.io'
+        DockerRepository: 'cv-credentials'
+        DockerImageTag: '$(GitVersion.Semver)'
