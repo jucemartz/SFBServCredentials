@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration>
+    <Appenders>
+        <Console name="Console" target="SYSTEM_OUT">
+            <PatternLayout
+                    pattern="%style{%d{ISO8601}}{black} %highlight{%-5level }[%style{%t}{bright,blue}] %style{%C{1.}}{bright,yellow}: %msg%n%throwable" />
+        </Console>
+
+        <RollingFile name="RollingFile"
+                     fileName="./logs/credentials-service.log"
+                     filePattern="./logs/$${date:yyyy-MM}/credentials-service-%d{-dd-MMMM-yyyy}-%i.log.gz">
+            <PatternLayout>
+                <Pattern>%d{yyyy-MM-dd HH:mm:ss} %-5p %m%n</Pattern>
+            </PatternLayout>
+            <Policies>
+                <TimeBasedTriggeringPolicy interval="1"/>
+            </Policies>
+        </RollingFile>
+    </Appenders>
+
+    <Loggers>
+        <Root level="${env:LOGGER_LEVEL}">
+            <AppenderRef ref="Console" />
+            <AppenderRef ref="RollingFile" />
+        </Root>
+    </Loggers>
+
+</Configuration>

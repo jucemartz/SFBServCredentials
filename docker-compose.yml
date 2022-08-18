@@ -1,0 +1,10 @@
+version: "3"
+
+services:
+  oracle-db:
+    container_name: oracle
+    image: epiclabs/docker-oracle-xe-11g
+    ports:
+      - {docker_port}:{machine_port}
+    environment:
+      - ORACLE_PWD={oracle_pwd} #sys password

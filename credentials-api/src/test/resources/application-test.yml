@@ -1,0 +1,19 @@
+server:
+  port: 5150
+
+banner:
+  datasource:
+    jdbc-url: jdbc:h2:mem:test
+  hibernate:
+    dialect: org.hibernate.dialect.H2Dialect
+    hbm2ddl:
+      auto: none
+
+sfbservice:
+  security:
+    oauth2:
+      authorization-server:
+        uri: http://fake.authorization.url
+    cors:
+      allowed-origins: '*'
+  inscripcion:

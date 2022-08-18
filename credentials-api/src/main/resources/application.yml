@@ -1,0 +1,49 @@
+spring:
+  profiles:
+    active:
+      - ${INSCRIPCION_APP_ENV}
+  mvc:
+    pathmach:
+      matching-strategy:
+        ant_path_matcher
+
+server:
+  port: ${INSCRIPCION_APP_PORT}
+banner:
+  datasource:
+    jdbc-url: jdbc:oracle:thin:@${BANNER_9_DB_HOST}:${BANNER_9_DB_PORT}:${BANNER_9_DB_NAME}
+    username: ${BANNER_9_DB_USER}
+    password: ${BANNER_9_DB_PASSWORD}
+  hibernate:
+    dialect: org.hibernate.dialect.Oracle12cDialect
+    hbm2ddl:
+      auto: none
+
+inscripcion:
+  datasource:
+    jdbc-url: jdbc:mysql://${INSCRIPCION_DB_HOST}:${INSCRIPCION_DB_PORT}/${INSCRIPCION_DB_NAME}
+    username: ${INSCRIPCION_DB_USER}
+    password: ${INSCRIPCION_DB_PASSWORD}
+  hibernate:
+    dialect: org.hibernate.dialect.MySQL5InnoDBDialect
+    hbm2ddl:
+      auto: none
+
+sfbservice:
+  security:
+    oauth2:
+      authorization-server:
+        uri: ${INSCRIPCION_OAUTH_SERVER_URL}
+    cors:
+      allowed-origins: '${INSCRIPCION_CORS_ALLOW_ORIGINS}'
+  credentials:
+    api:
+      id: sfbservice-credentials-api
+      name: Credentials Service API
+      version: @project.version@
+      url-paths:
+        base-path: /credentialsService/api
+        public-path: /public
+        formalities: /formalities
+        getsf-cost: /getCostDetailCode
+        getsf-credentials: /getCredentials
