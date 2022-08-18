@@ -37,7 +37,7 @@ stages:
     - task: Docker@2
       inputs:
         command: buildAndPush
-        containerRegistry: 'Azure Container Registry'
+        containerRegistry: 'Azure Container Registry-N'
         repository: cv-credentials
         tags: '$(GitVersion.SemVer)'
 
@@ -50,7 +50,7 @@ stages:
     - task: AzureRmWebAppDeployment@4
       inputs:
         ConnectionType: 'AzureRM'
-        azureSubscription: 'Lottus Registry'
+        azureSubscription: 'Lottus Registry-N'
         appType: 'webAppContainer'
         WebAppName: 'app-cv-credentials-dev'
         DockerNamespace: 'lottus.azurecr.io'
