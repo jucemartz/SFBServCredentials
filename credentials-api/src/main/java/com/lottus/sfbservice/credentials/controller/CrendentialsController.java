@@ -82,14 +82,16 @@ public class CrendentialsController extends SecureController {
                     System.out.println("Creación de credenciales UTC...");
                     ConsultaResponse response = azureService.createUser(getPersonCredentialsRequest);
                     if (response.getResponseCode().toUpperCase().equals("SUCCESS")) {
+                        System.out.println("Success...");
                         String separator = Pattern.quote("-");
                         String[] credeUTC = response.getResponseMessage().split(separator);
                         personInfoContract.setUserName(credeUTC[0]);
                         personInfoContract.setPassword(credeUTC[1]);
                         personInfoContract.setEmail(credeUTC[0]);
                     } else {
-                        new ServiceException(INTERNAL_ERROR, ERROR_107.getErrorId(),
-                                response.getResponseCode());
+                        System.out.println("Error...");
+                        personInfoContract.setCodeError(response.getResponseCode());
+                        personInfoContract.setMessageError(response.getResponseMessage());
                     }
                     break;
                 default:

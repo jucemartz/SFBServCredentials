@@ -155,12 +155,12 @@ public class ActiveDirectoryServiceImpl implements ActiveDirectoryService {
                 personAttributes.put(ATTR_UNICODE_PWD, newUnicodePassword);
                 Name userDN = buildDN(commonName);
                 ldapTemplate.bind(userDN, null, personAttributes);
-                if (personRequest.getData().getAffiliation().toUpperCase().equals("STUDENT")) {
-                    Integer pidm = repository.getPIDM(profileId);
-                    repository.inputsEmail(pidm, "UNIV", mail, "A", "Y", "SOA_ADMIN",
+
+                Integer pidm = repository.getPIDM(profileId);
+                repository.inputsEmail(pidm, "UNIV", mail, "A", "Y", "SOA_ADMIN",
                             "Y", "BANNERADAPTER");
-                    System.out.println("inputsEmailStudent");
-                }
+                System.out.println("inputsEmailStudent");
+
                 ldapValues.add(userName);
                 ldapValues.add(randomPassword);
                 ldapValues.add(mail);
