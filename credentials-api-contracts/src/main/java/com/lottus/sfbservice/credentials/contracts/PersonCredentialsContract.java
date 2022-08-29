@@ -20,13 +20,21 @@ public class PersonCredentialsContract {
     @ApiModelProperty
     protected String password;
 
+    @ApiModelProperty
+    protected String codeError;
+
+    @ApiModelProperty
+    protected String messageError;
+
     @Builder(setterPrefix = "with")
     private PersonCredentialsContract(String userName, String email,
-                                      String password) {
+                                      String password, String codeError, String messageError) {
 
         this.userName = userName;
         this.email = email;
         this.password = password;
+        this.codeError = codeError;
+        this.messageError = messageError;
 
     }
 }
