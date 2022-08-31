@@ -2,6 +2,7 @@ FROM lottus.azurecr.io/cv-entities-base:0.1.0-unstable.131 as builder
 WORKDIR /app/SFBServCredentials
 COPY . /app/SFBServCredentials
 RUN mvn clean install -DskipTests
+RUN $JAVA_HOME/bin/keytool -delete -noprompt -trustcacerts -alias ldap_ula -keystore $JAVA_HOME/jre/lib/security/cacerts -storepass changeit
 RUN $JAVA_HOME/bin/keytool -import -v -trustcacerts -alias ldap_ula -file /app/SFBServCredentials/certificate/kerberos-ulaalumnos.int.cer -keystore $JAVA_HOME/jre/lib/security/cacerts -keypass changeit -storepass changeit
 
 FROM openjdk:latest
