@@ -12,6 +12,9 @@ import lombok.NoArgsConstructor;
 public class PersonCredentialsContract {
 
     @ApiModelProperty
+    protected String bannerId;
+
+    @ApiModelProperty
     protected String userName;
 
     @ApiModelProperty
@@ -27,9 +30,10 @@ public class PersonCredentialsContract {
     protected String messageError;
 
     @Builder(setterPrefix = "with")
-    private PersonCredentialsContract(String userName, String email,
+    private PersonCredentialsContract(String bannerId, String userName, String email,
                                       String password, String codeError, String messageError) {
 
+        this.bannerId = bannerId;
         this.userName = userName;
         this.email = email;
         this.password = password;
