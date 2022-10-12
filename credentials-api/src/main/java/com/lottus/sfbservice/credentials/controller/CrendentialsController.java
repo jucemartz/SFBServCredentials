@@ -74,9 +74,10 @@ public class CrendentialsController extends SecureController {
                 case "ULA":
                     System.out.println("Creación de credenciales ULA...");
                     List<String> credeULA = activeService.createUser(getPersonCredentialsRequest);
-                    personInfoContract.setUserName(credeULA.get(0));
-                    personInfoContract.setPassword(credeULA.get(1));
-                    personInfoContract.setEmail(credeULA.get(2));
+                    personInfoContract.setBannerId(credeULA.get(0));
+                    personInfoContract.setUserName(credeULA.get(1));
+                    personInfoContract.setPassword(credeULA.get(2));
+                    personInfoContract.setEmail(credeULA.get(3));
                     break;
                 case "UTC":
                     System.out.println("Creación de credenciales UTC...");
@@ -85,6 +86,7 @@ public class CrendentialsController extends SecureController {
                         System.out.println("Success...");
                         String separator = Pattern.quote("-");
                         String[] credeUTC = response.getResponseMessage().split(separator);
+                        personInfoContract.setBannerId(getPersonCredentialsRequest.getData().getStudentId());
                         personInfoContract.setUserName(credeUTC[0]);
                         personInfoContract.setPassword(credeUTC[1]);
                         personInfoContract.setEmail(credeUTC[0]);
