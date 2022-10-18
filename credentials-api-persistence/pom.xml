@@ -36,7 +36,7 @@
         <dependency>
             <groupId>com.lottus.virtualcampus</groupId>
             <artifactId>banner-domain</artifactId>
-            <version>0.8.3-SNAPSHOT</version>
+            <version>0.8.4-SNAPSHOT</version>
         </dependency>
 
         <!-- DB -->
