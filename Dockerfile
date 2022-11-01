@@ -1,4 +1,4 @@
-FROM lottus.azurecr.io/cv-entities-base:0.1.0-unstable.148 as builder 
+FROM lottus.azurecr.io/cv-entities-base:0.1.0-unstable.154 as builder
 WORKDIR /app/SFBServCredentials
 COPY . /app/SFBServCredentials
 RUN mvn clean install -DskipTests
