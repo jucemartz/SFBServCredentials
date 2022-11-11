@@ -54,6 +54,8 @@ import javax.naming.directory.BasicAttributes;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.DateFormatUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
@@ -79,12 +81,14 @@ public class ActiveDirectoryServiceImpl implements ActiveDirectoryService {
     @Autowired
     private TransactionDetailsRepository repository;
 
+    private final Logger logger = LoggerFactory.getLogger(ActiveDirectoryServiceImpl.class);
+
     @Override
     public List<String> createUser(GetPersonCredentialsRequest personRequest) throws Exception {
         try {
             repository.contexto(personRequest.getData().getSchool());
         } catch (Exception e) {
-            System.out.println(personRequest.getData().getSchool() + " -1 error");
+            logger.error(personRequest.getData().getSchool() + " -1 error");
         }
         List<String> ldapValues = new ArrayList<String>();
         UserDto userDto =
@@ -99,7 +103,7 @@ public class ActiveDirectoryServiceImpl implements ActiveDirectoryService {
         List<String> existingUsers =
                 findUser(personRequest.getData().getStudentId(), profileId);
         if (existingUsers != null && existingUsers.size() > 0) {
-            System.out.println("Existen las credenciales en el Directorio Activo...");
+            logger.info("Existen las credenciales en el Directorio Activo...");
             String separator = Pattern.quote("-");
             String[] concat = existingUsers.get(0).split(separator);
             ldapValues.add(concat[0]);
@@ -107,7 +111,7 @@ public class ActiveDirectoryServiceImpl implements ActiveDirectoryService {
             ldapValues.add(concat[1]);
         } else if (existingUsers == null || existingUsers.isEmpty()) {
             try {
-                System.out.println("Se genera la información del usuario en el Directorio Activo...");
+                logger.info("Se genera la informacion del usuario en el Directorio Activo...");
                 BasicAttribute objectClassAttr = new BasicAttribute(OBJECT_CLASS);
                 objectClassAttr.add(OBJECT_CLASS_TOP);
                 objectClassAttr.add(OBJECT_CLASS_USER);
@@ -157,19 +161,21 @@ public class ActiveDirectoryServiceImpl implements ActiveDirectoryService {
                 ldapTemplate.bind(userDN, null, personAttributes);
 
                 Integer pidm = repository.getPIDM(profileId);
-                repository.inputsGBEmail(pidm, "UNIV", mail, "A", "Y", "SOA_ADMIN",
-                            "Y", "BANNERADAPTER");
-                System.out.println("inputsGBEmailStudent");
+                repository.inputsGBEmail(pidm, "UNIV", mail, "A", "N", "SOA_ADMIN",
+                            "N", "BANNERADAPTER");
+                logger.info("inputsGBEmailStudent");
 
                 ldapValues.add(personRequest.getData().getStudentId());
                 ldapValues.add(userName);
                 ldapValues.add(randomPassword);
                 ldapValues.add(mail);
             } catch (Exception e) {
+                logger.error(appConfig.getErrorMessage(ERROR_107));
                 new ServiceException(INTERNAL_ERROR, ERROR_107.getErrorId(),
                         appConfig.getErrorMessage(ERROR_107));
             }
         } else {
+            logger.error(appConfig.getErrorMessage(ERROR_107));
             new ServiceException(INTERNAL_ERROR, ERROR_503.getErrorId(),
                     appConfig.getErrorMessage(ERROR_503));
         }
@@ -222,7 +228,7 @@ public class ActiveDirectoryServiceImpl implements ActiveDirectoryService {
     private Name buildDN(String commonName) {
         DistinguishedName distinguishedName = new DistinguishedName(USER_DN);
         distinguishedName.add(ATTR_CN, commonName);
-        System.out.println(distinguishedName.toString());
+        logger.info(distinguishedName.toString());
         return distinguishedName;
     }
 
@@ -236,6 +242,7 @@ public class ActiveDirectoryServiceImpl implements ActiveDirectoryService {
         String idealCommonName = GDSHelper.getIdealCommonName(firstName, lastName);;
         List<String> matchingCommonNames = getMatchingCommonNames(idealCommonName);
         String newCommonName = GDSHelper.computeSequencedValue(idealCommonName, matchingCommonNames, " ");
+        logger.info(newCommonName);
         return newCommonName;
     }
 
@@ -249,6 +256,7 @@ public class ActiveDirectoryServiceImpl implements ActiveDirectoryService {
         String idealUserName = GDSHelper.getIdealUserName(firstName, lastName);
         List<String> matchingUserNames = getMatchingUserNames(idealUserName);
         String newUserName = GDSHelper.computeSequencedValue(idealUserName, matchingUserNames, "");
+        logger.info(newUserName);
         return newUserName;
     }
 }

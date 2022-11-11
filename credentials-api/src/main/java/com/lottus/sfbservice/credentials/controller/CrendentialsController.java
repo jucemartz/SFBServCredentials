@@ -24,6 +24,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -51,6 +53,8 @@ public class CrendentialsController extends SecureController {
     @Autowired
     private AzureADService azureService;
 
+    private final Logger logger = LoggerFactory.getLogger(CrendentialsController.class);
+
     /**
      * Get Crendentials.
      *
@@ -69,10 +73,11 @@ public class CrendentialsController extends SecureController {
                     value = "The request body content with person information")
             @RequestBody GetPersonCredentialsRequest getPersonCredentialsRequest) {
         try {
+            logger.info("Proceso de generacion de credenciales...");
             PersonCredentialsContract personInfoContract = new PersonCredentialsContract();
             switch (getPersonCredentialsRequest.getData().getSchool()) {
                 case "ULA":
-                    System.out.println("Creación de credenciales ULA...");
+                    logger.info("Creacion de credenciales ULA...");
                     List<String> credeULA = activeService.createUser(getPersonCredentialsRequest);
                     personInfoContract.setBannerId(credeULA.get(0));
                     personInfoContract.setUserName(credeULA.get(1));
@@ -80,7 +85,7 @@ public class CrendentialsController extends SecureController {
                     personInfoContract.setEmail(credeULA.get(3));
                     break;
                 case "UTC":
-                    System.out.println("Creación de credenciales UTC...");
+                    logger.info("Creación de credenciales UTC...");
                     ConsultaResponse response = azureService.createUser(getPersonCredentialsRequest);
                     if (response.getResponseCode().toUpperCase().equals("SUCCESS")) {
                         System.out.println("Success...");
@@ -97,10 +102,12 @@ public class CrendentialsController extends SecureController {
                     }
                     break;
                 default:
+                    logger.error("Input data error (affiliation, school, studentId).");
                     new ServiceException(INTERNAL_ERROR, ERROR_107.getErrorId(),
                             "Input data error (affiliation, school, studentId).");
                     break;
             }
+            logger.info("Return response");
             List<PersonCredentialsContract> person = new ArrayList<PersonCredentialsContract>();
             person.add(personInfoContract);
             return ResponseEntity.ok(GetPersonCredentialsResponse.builder()
@@ -108,6 +115,7 @@ public class CrendentialsController extends SecureController {
                     .withService(appHelper.getApiResponseService())
                     .build());
         } catch (Exception e) {
+            logger.error(appConfig.getErrorMessage(ERROR_504));
             throw new HandledException(INTERNAL_ERROR, ERROR_504.getErrorId(),
                     appConfig.getErrorMessage(ERROR_504), e);
         }

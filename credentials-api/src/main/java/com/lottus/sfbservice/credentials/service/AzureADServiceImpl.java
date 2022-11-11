@@ -14,6 +14,8 @@ import com.lottus.sfbservice.credentials.wsclient.CreateUserAdResponse;
 import java.io.InputStream;
 import java.util.Properties;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.oxm.jaxb.Jaxb2Marshaller;
 import org.springframework.stereotype.Service;
@@ -28,6 +30,8 @@ public class AzureADServiceImpl implements AzureADService {
     @Autowired
     private ApplicationConfiguration appConfig;
 
+    private final Logger logger = LoggerFactory.getLogger(AzureADServiceImpl.class);
+
     @Override
     public ConsultaResponse createUser(GetPersonCredentialsRequest personRequest) throws Exception {
         Jaxb2Marshaller marshaller = new Jaxb2Marshaller();
@@ -38,6 +42,7 @@ public class AzureADServiceImpl implements AzureADService {
         if (inputStream != null) {
             prop.load(inputStream);
         } else {
+            logger.error("property file '" + propFileName + "' not found in the classpath");
             new ServiceException(INTERNAL_ERROR, ERROR_107.getErrorId(),
                     "property file '" + propFileName + "' not found in the classpath");
         }
@@ -50,7 +55,7 @@ public class AzureADServiceImpl implements AzureADService {
         ConsultaResponse response = new ConsultaResponse();
         switch (personRequest.getData().getAffiliation().toUpperCase()) {
             case "FACULTY": {
-                System.out.println("Creación de Credenciales para docente");
+                logger.info("Creación de Credenciales para docente");
                 request.setMatricula(personRequest.getData().getStudentId());
                 request.setTipoUsuario("Docente");
                 CreateUserAdResponse createUser =
@@ -60,7 +65,7 @@ public class AzureADServiceImpl implements AzureADService {
                 break;
             }
             case "STUDENT": {
-                System.out.println("Creación de credenciales para Estudiante");
+                logger.info("Creacion de credenciales para Estudiante");
                 request.setMatricula(personRequest.getData().getStudentId());
                 request.setTipoUsuario("Alumno");
                 CreateUserAdResponse createUser =
@@ -70,6 +75,7 @@ public class AzureADServiceImpl implements AzureADService {
                 break;
             }
             default:
+                logger.error(appConfig.getErrorMessage(ERROR_503));
                 new ServiceException(INTERNAL_ERROR, ERROR_503.getErrorId(),
                         appConfig.getErrorMessage(ERROR_503));
                 break;
