@@ -29,5 +29,6 @@ public class LdapConstants {
     public static String ATTR_HOME_PHONE = "homephone";
     public static String ATTR_MOBILE = "mobile";
     public static String USER_DN = "ou=Academic Accounts,ou=ULA,ou=AM";
+    public static String BASE_DN = "OU=Academic Accounts,OU=ULA,OU=AM,OU=Global,DC=ulaalumnos,DC=int";
     public static String USER_EMAIL_DOMAIN = "my.ula.edu.mx";
 }

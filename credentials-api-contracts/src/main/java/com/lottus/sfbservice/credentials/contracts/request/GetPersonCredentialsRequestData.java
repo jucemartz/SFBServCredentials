@@ -23,12 +23,16 @@ public class GetPersonCredentialsRequestData {
     @ApiModelProperty(position = 4, required = true)
     protected String studentId;
 
+    @ApiModelProperty(position = 5, required = true)
+    protected String process;
+
     @Builder(setterPrefix = "with")
     private GetPersonCredentialsRequestData(String school, String affiliation,
-                                             String studentId) {
+                                             String studentId, String process) {
         this.school = school;
         this.affiliation = affiliation;
         this.studentId = studentId;
+        this.process = process;
         GetPersonCredentialsRequestValidator.INSTANCE.validate(this);
     }
 }

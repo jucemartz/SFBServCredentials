@@ -36,11 +36,12 @@ import static com.lottus.sfbservice.credentials.exception.HandledException.Error
 import com.lottus.sfbservice.credentials.common.GDSHelper;
 import com.lottus.sfbservice.credentials.config.ApplicationConfiguration;
 import com.lottus.sfbservice.credentials.contracts.request.GetPersonCredentialsRequest;
+import com.lottus.sfbservice.credentials.dto.UserTypeDto;
 import com.lottus.sfbservice.credentials.exception.ServiceException;
+import com.lottus.sfbservice.credentials.mappers.UserTypeMapper;
 import com.lottus.virtualcampus.banner.domain.dto.UserDto;
 import com.lottus.virtualcampus.banner.domain.repository.TransactionDetailsRepository;
 
-import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -51,6 +52,7 @@ import javax.naming.NamingException;
 import javax.naming.directory.Attributes;
 import javax.naming.directory.BasicAttribute;
 import javax.naming.directory.BasicAttributes;
+import javax.naming.directory.SearchControls;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.DateFormatUtils;
@@ -102,13 +104,14 @@ public class ActiveDirectoryServiceImpl implements ActiveDirectoryService {
         final String profileId = userDto.getProfileId();
         List<String> existingUsers =
                 findUser(personRequest.getData().getStudentId(), profileId);
+
         if (existingUsers != null && existingUsers.size() > 0) {
             logger.info("Existen las credenciales en el Directorio Activo...");
             String separator = Pattern.quote("-");
             String[] concat = existingUsers.get(0).split(separator);
-            ldapValues.add(concat[0]);
-            ldapValues.add("");
             ldapValues.add(concat[1]);
+            ldapValues.add("");
+            ldapValues.add(concat[0]);
         } else if (existingUsers == null || existingUsers.isEmpty()) {
             try {
                 logger.info("Se genera la informacion del usuario en el Directorio Activo...");
@@ -119,20 +122,24 @@ public class ActiveDirectoryServiceImpl implements ActiveDirectoryService {
                 objectClassAttr.add(OBJECT_CLASS_ORG_PERSON);
                 Attributes personAttributes = new BasicAttributes();
                 personAttributes.put(objectClassAttr);
-                String fnNormalize = Normalizer.normalize(fiName, Normalizer.Form.NFD);
-                String firstName =
-                        fnNormalize.replaceAll("[^\\p{ASCII}]", "").replaceAll("\\s+", " ").trim();
-                personAttributes.put(ATTR_GIVEN_NAME, StringUtils.capitalize(firstName));
-                String lnNormalize = Normalizer.normalize(laName, Normalizer.Form.NFD);
-                String lastName =
-                        lnNormalize.replaceAll("[^\\p{ASCII}]", "").replaceAll("\\s+", " ").trim();
-                personAttributes.put(ATTR_SN, StringUtils.capitalize(lastName));
-                String displayName = GDSHelper.getLegalName(firstName, lastName);
+                String firstName = GDSHelper.validateChars(fiName);
+                String lastName = GDSHelper.validateChars(laName);
+                String firName = GDSHelper.validateWord(firstName);
+                String lasName = GDSHelper.validateWord(lastName);
+
+                personAttributes.put(ATTR_GIVEN_NAME, StringUtils.capitalize(firName));
+                logger.info("ATTR_GIVEN_NAME: " + StringUtils.capitalize(firName));
+                personAttributes.put(ATTR_SN, StringUtils.capitalize(lasName));
+                logger.info("ATTR_SN: " + StringUtils.capitalize(lasName));
+                String displayName = GDSHelper.getLegalName(firName, lasName);
                 personAttributes.put(ATTR_DISPLAY_NAME, displayName);
+                logger.info("ATTR_DISPLAY_NAME: " + displayName);
                 String commonName = computeCommonName(firstName, lastName);
                 personAttributes.put(ATTR_CN, commonName);
-                String userName = computeUserName(firstName, lastName);
+                logger.info("ATTR_CN: " + commonName);
+                String userName = computeUserName(firName, lasName);
                 personAttributes.put(ATTR_MAIL_NICK_NAME, userName);
+                logger.info("ATTR_MAIL_NICK_NAME: " + userName);
                 personAttributes.put(ATTR_DESCRIPTION, "Apollo User Account");
                 personAttributes.put(ATTR_EXT_10, email);
                 personAttributes.put(ATTR_EXT_13,
@@ -153,19 +160,22 @@ public class ActiveDirectoryServiceImpl implements ActiveDirectoryService {
                 personAttributes.put(ATTR_UPN, mail);
                 String proxyEmail = "SMTP:" + mail;
                 personAttributes.put(ATTR_PROXY_ADDRESSES, proxyEmail);
-                String randomPassword = GDSHelper.getInitialPassword(lastName);
+                String randomPassword = GDSHelper.getInitialPassword(8);
                 String newQuotedPassword = "\"" + randomPassword + "\"";
                 byte[] newUnicodePassword = newQuotedPassword.getBytes("UTF-16LE");
                 personAttributes.put(ATTR_UNICODE_PWD, newUnicodePassword);
                 Name userDN = buildDN(commonName);
                 ldapTemplate.bind(userDN, null, personAttributes);
-
+                logger.info("Se guardo la informacion del usuario en el Directorio Activo...");
                 Integer pidm = repository.getPIDM(profileId);
-                repository.inputsGBEmail(pidm, "UNIV", mail, "A", "N", "SOA_ADMIN",
+                if (personRequest.getData().getAffiliation().toUpperCase().equals("STUDENT")) {
+                    repository.uniEmail(pidm,personRequest.getData().getStudentId(),mail);
+                    logger.info("inputsEmailUniv");
+                } else {
+                    repository.inputsEmail(pidm, "UNIV", mail, "A", "N", "SOA_ADMIN",
                             "N", "BANNERADAPTER");
-                logger.info("inputsGBEmailStudent");
-
-                ldapValues.add(personRequest.getData().getStudentId());
+                    logger.info("inputsEmailFacultyUniv");
+                }
                 ldapValues.add(userName);
                 ldapValues.add(randomPassword);
                 ldapValues.add(mail);
@@ -207,28 +217,45 @@ public class ActiveDirectoryServiceImpl implements ActiveDirectoryService {
 
     private List<String> getMatchingCommonNames(String idealCommonName) {
         Filter filter = new LikeFilter(ATTR_CN, idealCommonName + "*");
+        logger.info("filterCommonNames: " + filter);
         List matchingCommonNames = ldapTemplate.search("", filter.encode(), new AttributesMapper() {
             public Object mapFromAttributes(Attributes attributes) throws NamingException {
+                logger.info("ATTR_CN_GET: " + attributes.get(ATTR_CN).get());
                 return attributes.get(ATTR_CN).get();
             }
         });
-        return matchingCommonNames;
+
+        boolean nickName = GDSHelper.containName(matchingCommonNames, idealCommonName);
+        if (nickName) {
+            List matchingCN = GDSHelper.adjCommonNames(matchingCommonNames);
+            return matchingCN;
+        } else {
+            return null;
+        }
     }
 
     private List<String> getMatchingUserNames(String idealUserName) {
         Filter filter = new LikeFilter(ATTR_MAIL_NICK_NAME, idealUserName + "*");
+        logger.info("filterUserNames: " + filter);
         List matchingUserNames = ldapTemplate.search("", filter.encode(), new AttributesMapper() {
             public Object mapFromAttributes(Attributes attributes) throws NamingException {
+                logger.info("NICK_NAME_GET: " + attributes.get(ATTR_MAIL_NICK_NAME).get());
                 return attributes.get(ATTR_MAIL_NICK_NAME).get();
             }
         });
-        return matchingUserNames;
+
+        boolean nickName = GDSHelper.containName(matchingUserNames, idealUserName);
+        if (nickName) {
+            return matchingUserNames;
+        } else {
+            return null;
+        }
     }
 
     private Name buildDN(String commonName) {
         DistinguishedName distinguishedName = new DistinguishedName(USER_DN);
         distinguishedName.add(ATTR_CN, commonName);
-        logger.info(distinguishedName.toString());
+        logger.info("distinguishedName: " + distinguishedName.toString());
         return distinguishedName;
     }
 
@@ -239,10 +266,10 @@ public class ActiveDirectoryServiceImpl implements ActiveDirectoryService {
      */
     public String computeCommonName(String firstName, String lastName) throws Exception {
         GDSHelper.validateNames(firstName, lastName);
-        String idealCommonName = GDSHelper.getIdealCommonName(firstName, lastName);;
+        String idealCommonName = GDSHelper.getIdealCommonName(firstName, lastName);
         List<String> matchingCommonNames = getMatchingCommonNames(idealCommonName);
-        String newCommonName = GDSHelper.computeSequencedValue(idealCommonName, matchingCommonNames, " ");
-        logger.info(newCommonName);
+        String newCommonName = GDSHelper.computeSeqValue(idealCommonName, matchingCommonNames, " ");
+        logger.info("newCommonName: " + newCommonName);
         return newCommonName;
     }
 
@@ -255,8 +282,22 @@ public class ActiveDirectoryServiceImpl implements ActiveDirectoryService {
         GDSHelper.validateNames(firstName, lastName);
         String idealUserName = GDSHelper.getIdealUserName(firstName, lastName);
         List<String> matchingUserNames = getMatchingUserNames(idealUserName);
-        String newUserName = GDSHelper.computeSequencedValue(idealUserName, matchingUserNames, "");
-        logger.info(newUserName);
+        String newUserName = GDSHelper.computeSeqValue(idealUserName, matchingUserNames, "");
+        logger.info("newUserName: " + newUserName);
         return newUserName;
+    }
+
+    /**
+     * Search all Users in LDAP.
+     *
+     * @return list.
+     */
+    @SuppressWarnings("unchecked")
+    public List<UserTypeDto> searchAllUsers(String value, String attribute) {
+        Filter filter = new EqualsFilter(attribute, value);
+        List<UserTypeDto> usersList = ldapTemplate.search("", filter.encode(), SearchControls.SUBTREE_SCOPE,
+                new UserTypeMapper());
+
+        return usersList;
     }
 }

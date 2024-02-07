@@ -5,7 +5,7 @@
         http://www.springframework.org/schema/beans/spring-beans-3.0.xsd">
 
     <bean id="ldapContextSource" class="org.springframework.ldap.core.support.LdapContextSource">
-        <property name="url" value="ldaps://MXPWXXADGC500.ulaalumnos.int:636" />
+        <property name="url" value="ldaps://14.1.9.14:636" />
         <property name="base" value="OU=Global,DC=ulaalumnos,DC=int" />
         <property name="userDn" value="CN=Service Account - CAS,OU=IT Service Accounts,OU=Accounts,DC=ulaalumnos,DC=int" />
         <property name="password" value="Apollo01" />

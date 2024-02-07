@@ -17,5 +17,6 @@ public enum GetPersonCredentialsRequestValidator implements PersonValidator<GetP
         ParameterValidationUtils.validateNotNull(contract.getSchool(),"school");
         ParameterValidationUtils.validateNotNull(contract.getAffiliation(),"affiliation");
         ParameterValidationUtils.validateNotNull(contract.getStudentId(),"studentId");
+        ParameterValidationUtils.validateNotNull(contract.getProcess(),"process");
     }
 }

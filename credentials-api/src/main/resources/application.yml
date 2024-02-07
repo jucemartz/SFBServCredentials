@@ -47,3 +47,8 @@ sfbservice:
         formalities: /formalities
         getsf-cost: /getCostDetailCode
         getsf-credentials: /getCredentials
+logging:
+  level:
+    root: INFO
+    org.hibernate: TRACE
+    org.package: INFO

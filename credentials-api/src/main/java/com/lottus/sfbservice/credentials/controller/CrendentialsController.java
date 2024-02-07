@@ -13,6 +13,7 @@ import com.lottus.sfbservice.credentials.exception.HandledException;
 import com.lottus.sfbservice.credentials.exception.ServiceException;
 import com.lottus.sfbservice.credentials.service.ActiveDirectoryService;
 import com.lottus.sfbservice.credentials.service.AzureADService;
+import com.lottus.sfbservice.credentials.service.UpdateADService;
 import com.lottus.sfbservice.credentials.wsclient.ConsultaResponse;
 
 import io.swagger.annotations.Api;
@@ -43,6 +44,9 @@ public class CrendentialsController extends SecureController {
 
     @Autowired
     private ActiveDirectoryService activeService;
+
+    @Autowired
+    private UpdateADService updateService;
 
     @Autowired
     private ApplicationHelper appHelper;
@@ -77,28 +81,47 @@ public class CrendentialsController extends SecureController {
             PersonCredentialsContract personInfoContract = new PersonCredentialsContract();
             switch (getPersonCredentialsRequest.getData().getSchool()) {
                 case "ULA":
-                    logger.info("Creacion de credenciales ULA...");
-                    List<String> credeULA = activeService.createUser(getPersonCredentialsRequest);
-                    personInfoContract.setBannerId(credeULA.get(0));
-                    personInfoContract.setUserName(credeULA.get(1));
-                    personInfoContract.setPassword(credeULA.get(2));
-                    personInfoContract.setEmail(credeULA.get(3));
+                    if (getPersonCredentialsRequest.getData().getProcess().equals("INSC")) {
+                        logger.info("Creacion de credenciales ULA...");
+                        List<String> credeULA = activeService.createUser(getPersonCredentialsRequest);
+                        personInfoContract.setBannerId(getPersonCredentialsRequest.getData().getStudentId());
+                        personInfoContract.setUserName(credeULA.get(0));
+                        personInfoContract.setPassword(credeULA.get(1));
+                        personInfoContract.setEmail(credeULA.get(2));
+                    } else if (getPersonCredentialsRequest.getData().getProcess().equals("ACT")) {
+                        logger.info("Actualizacion de credenciales ULA...");
+                        List<String> credeULA = updateService.updateUser(getPersonCredentialsRequest);
+                        personInfoContract.setBannerId(getPersonCredentialsRequest.getData().getStudentId());
+                        personInfoContract.setUserName(credeULA.get(0));
+                        personInfoContract.setPassword(credeULA.get(1));
+                        personInfoContract.setEmail(credeULA.get(2));
+                    } else {
+                        logger.error(appConfig.getErrorMessage(ERROR_504));
+                        throw new HandledException(INTERNAL_ERROR, ERROR_504.getErrorId(),
+                                appConfig.getErrorMessage(ERROR_504));
+                    }
                     break;
                 case "UTC":
-                    logger.info("Creación de credenciales UTC...");
-                    ConsultaResponse response = azureService.createUser(getPersonCredentialsRequest);
-                    if (response.getResponseCode().toUpperCase().equals("SUCCESS")) {
-                        System.out.println("Success...");
-                        String separator = Pattern.quote("-");
-                        String[] credeUTC = response.getResponseMessage().split(separator);
-                        personInfoContract.setBannerId(getPersonCredentialsRequest.getData().getStudentId());
-                        personInfoContract.setUserName(credeUTC[0]);
-                        personInfoContract.setPassword(credeUTC[1]);
-                        personInfoContract.setEmail(credeUTC[0]);
+                    if (getPersonCredentialsRequest.getData().getProcess().equals("INSC")) {
+                        logger.info("Creación de credenciales UTC...");
+                        ConsultaResponse response = azureService.createUser(getPersonCredentialsRequest);
+                        if (response.getResponseCode().toUpperCase().equals("SUCCESS")) {
+                            System.out.println("Success...");
+                            String separator = Pattern.quote("-");
+                            String[] credeUTC = response.getResponseMessage().split(separator);
+                            personInfoContract.setBannerId(getPersonCredentialsRequest.getData().getStudentId());
+                            personInfoContract.setUserName(credeUTC[0]);
+                            personInfoContract.setPassword(credeUTC[1]);
+                            personInfoContract.setEmail(credeUTC[0]);
+                        } else {
+                            System.out.println("Error...");
+                            personInfoContract.setCodeError(response.getResponseCode());
+                            personInfoContract.setMessageError(response.getResponseMessage());
+                        }
                     } else {
-                        System.out.println("Error...");
-                        personInfoContract.setCodeError(response.getResponseCode());
-                        personInfoContract.setMessageError(response.getResponseMessage());
+                        logger.error(appConfig.getErrorMessage(ERROR_504));
+                        throw new HandledException(INTERNAL_ERROR, ERROR_504.getErrorId(),
+                                appConfig.getErrorMessage(ERROR_504));
                     }
                     break;
                 default:
